@@ -14,10 +14,18 @@ steps:
     packageType: sdk
     version: '6.x'
 
-- task: Npm@1
-  displayName: 'Run npm install'
+    # Install node version used locally (to solve errors in Azure pipelines)  
+- task: UseNode@1
   inputs:
-    verbose: false
+    version: '22.14.0'
+## Npm install fails in Azure pipelines. Trying to use npm ci instead.
+#- task: Npm@1
+ # displayName: 'Run npm install'
+  #inputs:
+  #  verbose: false
+
+- script: npm ci
+  displayName: 'Install dependencies'
 
 - script: './node_modules/.bin/node-sass Tailspin.SpaceGame.Web/wwwroot --output Tailspin.SpaceGame.Web/wwwroot'
   displayName: 'Compile Sass assets'
