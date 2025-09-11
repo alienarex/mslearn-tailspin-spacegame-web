@@ -35,7 +35,7 @@ namespace Tests
             const int MAX_RESULTS = 10; // sample up to 10 results
 
             // Form the query predicate.
-            // This expression selects all scores for the provided game region.
+            // Select all scores for the provided game region.
             Func<Score, bool> queryPredicate = score => (score.GameRegion == gameRegion);
 
             // Fetch the scores.
