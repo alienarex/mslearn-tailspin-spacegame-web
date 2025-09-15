@@ -2,7 +2,7 @@ trigger:
 - '*'
 
 pool:
-  vmImage: 'ubuntu-20.04'
+  vmImage: 'latest'
 
 variables:
   buildConfiguration: 'Release'
@@ -13,7 +13,6 @@ steps:
 - task: UseDotNet@2
   displayName: 'Use .NET SDK $(dotnetSdkVersion)'
   inputs:
-    packageType: 'sdk'
     version: '$(dotnetSdkVersion)'
 
 - task: NuGetToolInstaller@0
