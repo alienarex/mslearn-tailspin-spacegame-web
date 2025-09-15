@@ -17,7 +17,7 @@ steps:
   
 - task: UseNode@1
   inputs:
-    version: '20.x'
+    version: '22.x'
     
 - task: Npm@1
   displayName: 'Run npm install'
