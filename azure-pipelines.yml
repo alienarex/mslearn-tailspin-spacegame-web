@@ -1,10 +1,8 @@
 trigger:
-- '*'
+- '*'   # adjust to your branches
 
 pool:
   vmImage: 'ubuntu-22.04'
-  demands:
-  - npm
 
 variables:
   buildConfiguration: 'Release'
@@ -21,9 +19,10 @@ steps:
   inputs:
     versionSpec: '5.9.1'
 
-- task: UseNode@1
+- task: NodeTool@0
   inputs:
-    version: '20.x'
+    versionSpec: '20.x'
+  displayName: 'Use Node.js 20'
 
 - task: Npm@1
   displayName: 'Run npm install'
@@ -33,7 +32,7 @@ steps:
 - script: './node_modules/.bin/sass $(wwwrootDir):$(wwwrootDir)'
   displayName: 'Compile Sass assets'
 
-- task: gulp@1
+- script: './node_modules/.bin/gulp'
   displayName: 'Run gulp tasks'
 
 - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
@@ -54,6 +53,22 @@ steps:
     command: 'build'
     arguments: '--no-restore --configuration $(buildConfiguration)'
     projects: '**/*.csproj'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Pack NuGet package'
+  inputs:
+    command: 'pack'
+    packagesToPack: '**/*.csproj'
+    configuration: '$(buildConfiguration)'
+    nobuild: true
+    versioningScheme: 'off'
+
+- script: |
+    dotnet nuget push "$(Build.ArtifactStagingDirectory)/**/*.nupkg" \
+      --source "Tailspin.SpaceGame.Web.Models" \
+      --api-key AzureArtifacts \
+      --skip-duplicate
+  displayName: 'Publish NuGet package to feed'
 
 - task: DotNetCoreCLI@2
   displayName: 'Publish the project - $(buildConfiguration)'
