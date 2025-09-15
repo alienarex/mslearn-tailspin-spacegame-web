@@ -3,8 +3,6 @@ trigger:
 
 pool:
   vmImage: 'ubuntu-20.04'
-  demands:
-  - npm
 
 variables:
   buildConfiguration: 'Release'
@@ -15,18 +13,23 @@ steps:
 - task: UseDotNet@2
   displayName: 'Use .NET SDK $(dotnetSdkVersion)'
   inputs:
+    packageType: 'sdk'
     version: '$(dotnetSdkVersion)'
 
 - task: NuGetToolInstaller@0
   inputs:
     versionSpec: '5.9.1'
 
+- task: UseNode@1
+  inputs:
+    version: '22.14.0'
+
 - task: Npm@1
   displayName: 'Run npm install'
   inputs:
     verbose: false
 
-- script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
+- script: './node_modules/.bin/sass $(wwwrootDir):$(wwwrootDir)'
   displayName: 'Compile Sass assets'
 
 - task: gulp@1
