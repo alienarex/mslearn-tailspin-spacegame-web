@@ -1,73 +1,93 @@
 trigger:
-- '*'
+  - "*"
 
 pool:
-  vmImage: 'ubuntu-latest'
+  # Use the latest Ubuntu image for the build agent
+  vmImage: "ubuntu-latest"
 
 variables:
-  buildConfiguration: 'Release'
-  wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
-  dotnetSdkVersion: '8.x'
+  buildConfiguration: "Release"
+  wwwrootDir: "Tailspin.SpaceGame.Web/wwwroot"
+  dotnetSdkVersion: "8.x"
 
 steps:
-- script: |
-    sudo apt-get update
-    sudo apt-get install -y mono-complete
-  displayName: 'Install Mono'
+  #Install Mono since it's required by some npm packages
+  - script: |
+      sudo apt-get update
+      sudo apt-get install -y mono-complete
+    displayName: "Install Mono"
 
-- task: UseDotNet@2
-  displayName: 'Use .NET SDK $(dotnetSdkVersion)'
-  inputs:
-    version: '$(dotnetSdkVersion)'
+    # Use the specified version of the .NET SDK
+  - task: UseDotNet@2
+    displayName: "Use .NET SDK $(dotnetSdkVersion)"
+    inputs:
+      version: "$(dotnetSdkVersion)"
 
-- task: UseNode@1
-  inputs:
-    version: '22.x'
-    
-- task: Npm@1
-  displayName: 'Run npm install'
-  inputs:
-    verbose: false
+    # Use the specified version of Node.js
+  - task: UseNode@1
+    inputs:
+      version: "22.x"
 
-- task: NuGetToolInstaller@0
-  inputs:
-    versionSpec: '5.9.1'
+    # Install npm packages
+  - task: Npm@1
+    displayName: "Run npm install"
+    inputs:
+      verbose: false
 
+    #Authenticate with NuGet.org and Azure Artifacts feeds
+  - task: NuGetAuthenticate@1
+    displayName: "Authenticate with NuGet"
 
-- script: './node_modules/.bin/sass $(wwwrootDir):$(wwwrootDir)'
-  displayName: 'Compile Sass assets'
+    # Restore dependencies using .NET CLI
+  - task: DotNetCoreCLI@2
+    displayName: "Restore project dependencies"
+    inputs:
+      command: "restore"
+      projects: "**/*.sln"
+      feedsToUse: "select"
+      vstsFeed: "$(System.TeamProject)/Tailspin.SpaceGame.Web.Models"
 
-- task: gulp@1
-  displayName: 'Run gulp tasks'
+    # Compile Sass assets
+  - script: "./node_modules/.bin/sass $(wwwrootDir):$(wwwrootDir)"
+    displayName: "Compile Sass assets"
 
-- script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
-  displayName: 'Write build info'
-  workingDirectory: $(wwwrootDir)
+    # Run Gulp tasks to process JavaScript and other assets
+  - task: gulp@1
+    displayName: "Run gulp tasks"
 
-- task: NuGetCommand@2
-  displayName: 'Restore project dependencies'
-  inputs:
-    command: 'restore'
-    restoreSolution: '**/*.sln'
-    feedsToUse: 'select'
-    vstsFeed: '$(System.TeamProject)/Tailspin.SpaceGame.Web.Models'
+    # Write build information to a file
+  - script: 'echo "$(Build.DefinitionName), $(Build.BuildId), $(Build.BuildNumber)" > buildinfo.txt'
+    displayName: "Write build info"
+    workingDirectory: $(wwwrootDir)
 
-- task: DotNetCoreCLI@2
-  displayName: 'Build the project - $(buildConfiguration)'
-  inputs:
-    command: 'build'
-    arguments: '--no-restore --configuration $(buildConfiguration)'
-    projects: '**/*.csproj'
+    # Restore NuGet packages
+  - task: NuGetCommand@2
+    displayName: "Restore project dependencies"
+    inputs:
+      command: "restore"
+      restoreSolution: "**/*.sln"
+      feedsToUse: "select"
+      vstsFeed: "$(System.TeamProject)/Tailspin.SpaceGame.Web.Models"
 
-- task: DotNetCoreCLI@2
-  displayName: 'Publish the project - $(buildConfiguration)'
-  inputs:
-    command: 'publish'
-    projects: '**/*.csproj'
-    publishWebProjects: false
-    arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
-    zipAfterPublish: true
+    # Build the project
+  - task: DotNetCoreCLI@2
+    displayName: "Build the project - $(buildConfiguration)"
+    inputs:
+      command: "build"
+      arguments: "--no-restore --configuration $(buildConfiguration)"
+      projects: "**/*.csproj"
 
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact: drop'
-  condition: succeeded()
+      # Publish the project
+  - task: DotNetCoreCLI@2
+    displayName: "Publish the project - $(buildConfiguration)"
+    inputs:
+      command: "publish"
+      projects: "**/*.csproj"
+      publishWebProjects: false
+      arguments: "--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)"
+      zipAfterPublish: true
+
+    # Publish the build artifacts
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish Artifact: drop"
+    condition: succeeded()
