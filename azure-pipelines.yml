@@ -34,19 +34,6 @@ steps:
     inputs:
       verbose: false
 
-    #Authenticate with NuGet.org and Azure Artifacts feeds
-  - task: NuGetAuthenticate@1
-    displayName: "Authenticate with NuGet"
-
-    # Restore dependencies using .NET CLI
-  - task: DotNetCoreCLI@2
-    displayName: "Restore project dependencies"
-    inputs:
-      command: "restore"
-      projects: "**/*.sln"
-      feedsToUse: "select"
-      vstsFeed: "$(System.TeamProject)/Tailspin.SpaceGame.Web.Models"
-
     # Compile Sass assets
   - script: "./node_modules/.bin/sass $(wwwrootDir):$(wwwrootDir)"
     displayName: "Compile Sass assets"
@@ -60,15 +47,19 @@ steps:
     displayName: "Write build info"
     workingDirectory: $(wwwrootDir)
 
-    # Restore NuGet packages
-  - task: NuGetCommand@2
+    #Authenticate with NuGet.org and Azure Artifacts feeds
+  - task: NuGetAuthenticate@1
+    displayName: "Authenticate with NuGet"
+
+    # Restore dependencies using .NET CLI
+  - task: DotNetCoreCLI@2
     displayName: "Restore project dependencies"
     inputs:
       command: "restore"
-      restoreSolution: "**/*.sln"
+      projects: "**/*.sln"
       feedsToUse: "select"
       vstsFeed: "$(System.TeamProject)/Tailspin.SpaceGame.Web.Models"
-
+          
     # Build the project
   - task: DotNetCoreCLI@2
     displayName: "Build the project - $(buildConfiguration)"
